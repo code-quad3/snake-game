@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Basic Snake HTML Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    border: 1px solid white;
+  }
+  #pause{
+    position:absolute;
+    margin-top:38em;
+    padding:2em;
+    border-radius: 1em;
+    color:green;
+
+
+
+    
+  font-family: "Press Start 2P", system-ui;
+  font-weight: 400;
+  font-style: normal;
+
+  }
+
+
+
+
+  #replay{
+    position:absolute;
+    
+    padding:2em;
+    border-radius: 1em;
+    color:green;
+
+
+
+    
+  font-family: "Press Start 2P", system-ui;
+  font-weight: 400;
+  font-style: normal;
+
+  }
+#msg{
+  color: white;
+  position:absolute;
+  
+  font-family: "Press Start 2P", system-ui;
+  font-weight: 400;
+  font-style: normal;
+  margin-bottom: 20em;
+  font-size: x-large;
+}
+
+
+  </style>
+</head>
+<body>
+
+<canvas width="400" height="400" id="game"></canvas>
+<button id ="pause">Pause</button>
+<button id ="replay">replay</button>
+<p id ="msg">
+</p>
+<script>
+
+
+const myfont = new FontFace('Press Start', 'url(PressStart2P-Regular.ttf)');
+    document.fonts.add(myfont);
+    myfont.load().then( () => {  
+      
+      
+      
+      console.log("Font is loaded.")});
+           
+
+      
+      var canvas = document.getElementById('game');
+      var context = canvas.getContext('2d');
+      context.font="20px 'Press Start'";
+      const bt=  document.getElementById('pause');
+      const bt2= document.getElementById('replay');
+      bt2.style.visibility="hidden";
+        const gmo= document.getElementById('msg');
+        gmo.style.visibility="hidden";
+
+
+      function gameOver(){
+        context.clearRect(0,0,canvas.width,canvas.height);
+        togglePause();
+        bt2.style.visibility="visible";
+        bt.style.visibility="hidden";
+        gmo.style.visibility="visible";
+        gmo.textContent=`Game Over  
+        score is ${score}`;
+    
+      }
+      // the canvas width & height, snake x & y, and the apple x & y, all need to be a multiples of the grid size in order for collision detection to work
+      // (e.g. 16 * 25 = 400)
+var grid = 16;
+var count = 0;
+
+var snake = {
+  x: 160,
+  y: 160,
+
+  // snake velocity. moves one grid length every frame in either the x or y direction
+  dx: grid,
+  dy: 0,
+
+  // keep track of all grids the snake body occupies
+  cells: [],
+
+  // length of the snake. grows when eating an apple
+  maxCells: 4
+};
+var apple = {
+  x: 320,
+  y: 320
+};
+let hiScore;
+ let score=0;
+ if(localStorage.getItem("hSc")===null){
+ 
+   localStorage.setItem("hSc",JSON.stringify(0));
+   console.log("loaded");
+  }
+
+
+// get random whole numbers in a specific range
+// @see https://stackoverflow.com/a/1527820/2124254
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+function isPos(posx ,posy){
+ snake.cells.forEach(function(cell){
+  if(posx===cell.x && posy===cell.y){
+    return true;
+  }
+
+ });
+ return false;
+}
+function appleSpawn(){
+  apple.x=getRandomInt(0,25)*grid;
+  apple.y=getRandomInt(0,25)*grid;
+ while(isPos(apple.x,apple.y)){
+  apple.x=getRandomInt(0,25)*grid;
+  apple.y=getRandomInt(0,25)*grid;
+ }
+
+}
+
+var isRunning = true;
+function togglePause(){
+  isRunning= !isRunning;
+  if(isRunning){
+    loop();
+  }
+}
+
+
+
+
+
+// game loop
+function loop() {
+  if(isRunning){
+  requestAnimationFrame(loop);
+  }
+  
+  // slow game loop to 15 fps instead of 60 (60/15 = 4)
+  if (++count < 4) {
+  console.log();
+    return;
+  }
+  
+  count = 0;
+  context.clearRect(0,0,canvas.width,canvas.height);
+  
+  context.fillStyle="white";
+  context.fillText(`Score: ${score}`,canvas.width/4,canvas.height/6);
+  
+    hiScore= parseInt(localStorage.getItem("hiSc"));
+  
+  if(score>hiScore){
+    hiScore=score;
+    localStorage.setItem("hiSc",JSON.stringify(hiScore));
+  }       
+   
+  
+  
+  context.fillText(`Hi Score ${hiScore}`,canvas.width/4,canvas.height/12);
+
+
+  // move snake by it's velocity
+  snake.x += snake.dx;
+  snake.y += snake.dy;
+
+  // wrap snake position horizontally on edge of screen
+  if (snake.x < 0) {
+    snake.x = canvas.width - grid;
+    gameOver();
+  }
+  else if (snake.x >= canvas.width) {
+    snake.x = 0;
+  gameOver();
+        
+  }
+
+  // wrap snake position vertically on edge of screen
+  if (snake.y < 0) {
+    snake.y = canvas.height - grid;
+    gameOver();
+  }
+  else if (snake.y >= canvas.height) {
+    snake.y = 0;
+    gameOver();
+  }
+
+  // keep track of where snake has been. front of the array is always the head
+  snake.cells.unshift({x: snake.x, y: snake.y});
+
+  // remove cells as we move away from them
+  if (snake.cells.length > snake.maxCells) {
+    snake.cells.pop();
+  }
+
+  // draw apple
+  context.fillStyle = 'red';
+  context.fillRect(apple.x, apple.y, grid-1, grid-1);
+
+  // draw snake one cell at a time
+  context.fillStyle = 'green';
+  snake.cells.forEach(function(cell, index) {
+                                 
+    // drawing 1 px smaller than the grid creates a grid effect in the snake body so you can see how long it is
+    context.fillRect(cell.x, cell.y, grid-1, grid-1);
+
+    // snake ate apple
+    if (cell.x === apple.x && cell.y === apple.y) {
+      snake.maxCells++;
+      score++;
+
+      // canvas is 400x400 which is 25x25 grids
+      //apple.x = getRandomInt(0, 25) * grid;
+      //apple.y = getRandomInt(0, 25) * grid;
+      appleSpawn();
+    }
+
+    // check collision with all cells after this one (modified bubble sort)
+    for (var i = index + 1; i < snake.cells.length; i++) {
+            
+      // snake occupies same space as a body part. reset game
+      if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+        snake.x = 160;
+        snake.y = 160;
+        snake.cells = [];
+        snake.maxCells = 4;
+        snake.dx = grid;
+        snake.dy = 0;
+                 
+       // apple.x = getRandomInt(0, 25) * grid;
+       // apple.y = getRandomInt(0, 25) * grid;
+      appleSpawn();
+        
+      }
+    }
+  });
+}
+
+// listen to keyboard events to move the snake
+document.addEventListener('keydown', function(e) {
+  // prevent snake from backtracking on itself by checking that it's
+  // not already moving on the same axis (pressing left while moving
+  // left won't do anything, and pressing right while moving left
+  // shouldn't let you collide with your own body)
+
+  // left arrow key
+  if (e.which === 37 && snake.dx === 0) {
+    snake.dx = -grid;
+    snake.dy = 0;
+  }
+  // up arrow key
+  else if (e.which === 38 && snake.dy === 0) {
+    snake.dy = -grid;
+    snake.dx = 0;
+  }
+  // right arrow key
+  else if (e.which === 39 && snake.dx === 0) {
+    snake.dx = grid;
+    snake.dy = 0;
+  }
+  // down arrow key
+  else if (e.which === 40 && snake.dy === 0) {
+    snake.dy = grid;
+    snake.dx = 0;
+  }
+});
+var touchObj=null;
+var startx;
+var distX;
+var distY;
+var starty;
+
+document.addEventListener('touchstart',(e)=>{
+touchObj=e.changedTouches[0];
+startx=
+parseInt(touchObj.clientX);
+starty=parseInt(touchObj.clientY);
+console.log(startx);
+
+});
+document.addEventListener('touchmove',(e)=>{
+touchObj=e.changedTouches[0];
+distX =(parseInt(startx-touchObj.clientX));
+distY=(parseInt(starty-touchObj.clientY));
+
+
+
+});
+
+document.addEventListener('touchend',(e)=>{
+  
+  if(Math.abs(distX)> Math.abs(distY)){
+    if(distX>0){
+    
+      
+    snake.dx = -grid;
+    snake.dy = 0;
+    }
+    else{
+      
+      snake.dx = grid;
+    snake.dy = 0;
+    }
+
+
+
+  }
+else{
+  if(distY>0){
+    snake.dy = -grid;
+    snake.dx = 0;
+  }
+  else{
+    
+    snake.dy = grid;
+    snake.dx = 0;
+  }
+}
+
+
+
+
+
+});
+
+bt.addEventListener('click',()=>{
+  let string = bt.textContent;
+  if(string==="Pause"){
+    string="Play";
+  }
+  else{
+    string="Pause";
+  }
+  bt.textContent=string;
+  togglePause();
+  
+});
+bt2.addEventListener('click',()=>{
+  togglePause();
+  
+  snake.x = 160;
+  snake.y = 160;
+  snake.cells = [];
+  snake.maxCells = 4;
+  snake.dx = grid;
+  snake.dy = 0;
+  score=0;
+  appleSpawn();
+  bt2.style.visibility="hidden";  
+gmo.style.visibility="hidden";
+bt.style.visibility="visible";
+
+})
+
+
+// start the game
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
